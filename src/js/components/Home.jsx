@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 //include images into your bundle
 import rigoImage from "../../img/rigo-baby.jpg";
@@ -10,12 +10,61 @@ const Home = () => {
 
 	const [listaTareas, setListaTareas] = useState([])
 
-	const agregarTarea = () => {
-		if (!tarea.trim()){
+	const API_URL = "https://playground.4geeks.com/todo"
+
+	const USER = 'Lorenzo'
+
+	const getUser = async () => {
+
+		const response = await fetch(`${API_URL}/users/${USER}`)
+
+		if (!response.ok) {
+			console.log('User no existe');
+			crearUser()
 			return
 		}
-		setListaTareas([...listaTareas, tarea])
-		setTarea('')
+
+		const data = await response.json()
+		console.log(data);
+		setListaTareas(data.todos)
+	}
+
+	const crearUser = async () => {
+		const response = await fetch(`${API_URL}/users/${USER}`, {
+			method: 'POST'
+		})
+		if (!response.ok) {
+			return
+		}
+	}
+
+	useEffect(() => {
+		getUser()
+	}, [])
+
+	const agregarTarea = async () => {
+
+		if (!tarea.trim()) {
+			return
+		}
+
+		const response = await fetch(`${API_URL}/todos/${USER}`, {
+			method: "POST",
+			body: JSON.stringify({ label: tarea }),
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
+
+		if (!response.ok) {
+			console.log('Tarea no Válida');
+			return
+		}
+
+		if (response.ok) {
+			getUser()
+			setTarea('')
+		}
 	}
 
 	const pulsarEnter = (e) => {
@@ -24,8 +73,19 @@ const Home = () => {
 		}
 	}
 
-	const eliminarTarea = (index) => {
-		setListaTareas(nuevaLista => nuevaLista.filter((_, i) => i !== index))
+	const eliminarTarea = async (id) => {
+
+		const response = await fetch(`${API_URL}/todos/${id}`, {
+			method: "DELETE",
+			body: JSON.stringify({ label: tarea }),
+			headers: {
+				"Content-Type": "application/json"
+			}
+		})
+
+		if (response.ok) {
+			getUser()
+		}
 	}
 
 	return (
@@ -35,6 +95,7 @@ const Home = () => {
 				<div className="row mx-auto">
 					<div className="shadow rounded-4 m-2 p-2 bg-light bg-opacity-50" style={{ minHeight: "250px" }}>
 						<div className="row m-3">
+							<div className="col-12 mx-auto text-center fw-bold mb-4">{USER}</div>
 							<div className="col-md-10 col-12 mb-2 mb-md-0">
 								<input
 									className="form-control"
@@ -52,11 +113,11 @@ const Home = () => {
 							</div>
 						</div>
 						{
-							listaTareas.map((tarea, index) => {
+							listaTareas.map((item, index) => {
 								return (
 									<div key={index} className="d-flex justify-content-between" >
-										<p>- {tarea}</p>
-										<p onClick={() => eliminarTarea(index)}><i className="fa-solid fa-circle-xmark" style={{ color: "#a50000ff" }}></i></p>
+										<p>- {item.label}</p>
+										<p onClick={() => eliminarTarea(item.id)}><i className="fa-solid fa-circle-xmark" style={{ color: "#a50000ff" }}></i></p>
 									</div>
 								)
 							})
